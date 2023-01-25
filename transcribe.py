@@ -16,17 +16,21 @@ class Whisper:
     def __init__(self, size: str = "base") -> None:
         self.model = whisper.load_model(size)
 
-    def reduce_noise(self, path: str) -> None:
-        rate, data = wavfile.read(path)
-        reduced_noise = nr.reduce_noise(y=data, sr=rate)
-        wavfile.write(path, rate, reduced_noise)
-
     def __call__(self, path: str) -> str:
         result = self.model.transcribe(path)
-        return result.text
+        print(result)
+        return result["text"]
+
+
+def reduce_noise(path: str) -> None:
+    print("reducing noise")
+    rate, data = wavfile.read(path)
+    reduced_noise = nr.reduce_noise(y=data, sr=rate)
+    wavfile.write(path, rate, reduced_noise)
 
 
 def _split(wav_path, output_dir):
+    reduce_noise(wav_path)
     sound = AudioSegment.from_file(wav_path, format="wav")
     print("splitting on sience")
     chunks = split_on_silence(
