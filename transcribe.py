@@ -1,24 +1,24 @@
 import glob
-import json
 import os
-import random
 import tempfile
-import time
-from concurrent.futures import Future
-from concurrent.futures import ThreadPoolExecutor as TPE
-from queue import Queue
-from pydub.effects import normalize
 
-import requests
+import whisper
 from natsort import natsorted
 from pydub import AudioSegment
+from pydub.effects import normalize
 from pydub.silence import split_on_silence
 from tqdm import tqdm
 
-import com.amivoice.hrp.Hrp
-import com.amivoice.hrp.HrpListener
-
 __all__ = ["_transcribe"]
+
+
+class Whisper:
+    def __init__(self, size: str = "base") -> None:
+        self.model = whisper.load_model(size)
+
+    def __call__(self, path: str) -> str:
+        result = self.model.transcribe(path)
+        return result.text
 
 
 def _split(wav_path, output_dir):
@@ -48,10 +48,7 @@ def join_wavs(wav_paths, output_path):
 
 
 def _transcribe(wav_path):
-    api_key = os.getenv("API_KEY")
-    engine_name = os.getenv("ENGINE_NAME")
-    endpoint = os.getenv("ENDPOINT_URL")
-    codec = "16K"
+    size = os.getenv("MODEL_SIZE", "base")
     with tempfile.TemporaryDirectory() as dname:
         _split(wav_path, dname)
 
@@ -67,22 +64,16 @@ def _transcribe(wav_path):
         org_files = files.copy()
 
         while len(files) > 0:
-            api = AsyncHrp(endpoint, codec, engine_name, api_key)
+            model = Whisper(size)
             tmp_results = dict()
-            for f in files:
-                res: Future = api(f)
+            for f in tqdm(files):
+                res = model(f)
                 tmp_results[f] = res
 
             for f, r in tqdm(tmp_results.items(), total=len(files)):
-                try:
-                    tmp = r.result()
-                    if tmp is not None:
-                        results[f] = tmp
-                    else:
-                        org_files.remove(f)
-                    files.remove(f)
-                except Exception as e:
-                    print(e)
+                if not r:
+                    org_files.remove(f)
+                files.remove(f)
 
         data = list()
         for f in org_files:
@@ -117,12 +108,15 @@ def append_new_lines(cands, len_thre=100):
         if (
             tmp_len >= len_thre
             or (
-                cand["written"] == "。"
-                or (cand["written"] == "、" and tmp_len >= len_thre // 2)
+                cand["written"] in {"。", "!", "?", "."}
+                or (
+                    cand["written"] in {"、", ",", ";",
+                                        ":"} and tmp_len >= len_thre // 2
+                )
             )
             or (last_speaker is not None and last_speaker != speaker)
         ):
-            s = "".join([x["written"] for x in cands[i : j + 1]])
+            s = "".join([x["written"] for x in cands[i: j + 1]])
             line = f"{time2str(t)}: \t{s}"
             lines.append(line)
             last_speaker = speaker
@@ -157,7 +151,7 @@ def pretty(results):
                 text += append_new_lines(cands)
                 cands.clear()
         t_base += rr["duration_seconds"] * 1000
-    
+
     text = text.strip()
     while "\n\n\n" in text:
         text = text.replace("\n\n\n", "\n\n")
