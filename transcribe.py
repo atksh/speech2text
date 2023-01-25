@@ -9,8 +9,6 @@ from pydub.effects import normalize
 from pydub.silence import split_on_silence
 from tqdm import tqdm
 
-__all__ = ["_transcribe"]
-
 
 class Whisper:
     def __init__(self, size: str = "base") -> None:
@@ -110,13 +108,12 @@ def append_new_lines(cands, len_thre=100):
             or (
                 cand["written"] in {"。", "!", "?", "."}
                 or (
-                    cand["written"] in {"、", ",", ";",
-                                        ":"} and tmp_len >= len_thre // 2
+                    cand["written"] in {"、", ",", ";", ":"} and tmp_len >= len_thre // 2
                 )
             )
             or (last_speaker is not None and last_speaker != speaker)
         ):
-            s = "".join([x["written"] for x in cands[i: j + 1]])
+            s = "".join([x["written"] for x in cands[i : j + 1]])
             line = f"{time2str(t)}: \t{s}"
             lines.append(line)
             last_speaker = speaker

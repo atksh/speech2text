@@ -3,9 +3,10 @@ import os
 import invoke
 
 
+
 @invoke.task
 def build(c):
-    c.run("docker build -t ami .")
+    c.run("docker build -t stt .")
 
 
 @invoke.task
@@ -18,6 +19,7 @@ def convert_to_wav(c, input_path, output_path):
 
 @invoke.task
 def transcribe(c, wav_path, output_path):
+    from transcribe import _transcribe
     text = _transcribe(wav_path)
     with open(output_path, "w") as f:
         f.write(text)
@@ -25,7 +27,7 @@ def transcribe(c, wav_path, output_path):
 
 @invoke.task
 def run(c):
-    c.run("docker run -v $(pwd):/code --rm -it --env-file .env ami", pty=True)
+    c.run("docker run --gpus all -v $(pwd):/code --rm -it --env-file .env sst", pty=True)
 
 
 @invoke.task
@@ -47,7 +49,7 @@ def stt(c, file_path):
 
     c.run(
         (
-            "docker run -v $(pwd):/code --rm -it --env-file .env --entrypoint inv ami "
+            "docker run --gpus all -v $(pwd):/code --rm -it --env-file .env --entrypoint inv stt "
             f"do-all {file_path}"
         ),
         pty=True,
