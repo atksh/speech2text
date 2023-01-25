@@ -2,17 +2,24 @@ import glob
 import os
 import tempfile
 
+import noisereduce as nr
 import whisper
 from natsort import natsorted
 from pydub import AudioSegment
 from pydub.effects import normalize
 from pydub.silence import split_on_silence
+from scipy.io import wavfile
 from tqdm import tqdm
 
 
 class Whisper:
     def __init__(self, size: str = "base") -> None:
         self.model = whisper.load_model(size)
+
+    def reduce_noise(self, path: str) -> None:
+        rate, data = wavfile.read(path)
+        reduced_noise = nr.reduce_noise(y=data, sr=rate)
+        wavfile.write(path, rate, reduced_noise)
 
     def __call__(self, path: str) -> str:
         result = self.model.transcribe(path)

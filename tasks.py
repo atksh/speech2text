@@ -3,7 +3,6 @@ import os
 import invoke
 
 
-
 @invoke.task
 def build(c):
     c.run("docker build -t stt .")
@@ -20,14 +19,10 @@ def convert_to_wav(c, input_path, output_path):
 @invoke.task
 def transcribe(c, wav_path, output_path):
     from transcribe import _transcribe
+
     text = _transcribe(wav_path)
     with open(output_path, "w") as f:
         f.write(text)
-
-
-@invoke.task
-def run(c):
-    c.run("docker run --gpus all -v $(pwd):/code --rm -it --env-file .env sst", pty=True)
 
 
 @invoke.task
@@ -47,9 +42,12 @@ def stt(c, file_path):
     if not os.path.exists(file_path):
         assert FileNotFoundError
 
+    gpu_available = os.getenv("GPU_AVAILABLE", "false") == "true"
+    if gpu_available:
+        gpu_arg = "--gpus all"
     c.run(
         (
-            "docker run --gpus all -v $(pwd):/code --rm -it --env-file .env --entrypoint inv stt "
+            f"docker run {gpu_arg} -v $(pwd):/code --rm -it --env-file .env --entrypoint inv stt "
             f"do-all {file_path}"
         ),
         pty=True,
