@@ -45,6 +45,8 @@ def stt(c, file_path):
     gpu_available = os.getenv("GPU_AVAILABLE", "false") == "true"
     if gpu_available:
         gpu_arg = "--gpus all"
+    else:
+        gpu_arg = ""
     c.run(
         (
             f"docker run {gpu_arg} -v $(pwd):/code --rm -it --env-file .env --entrypoint inv stt "
