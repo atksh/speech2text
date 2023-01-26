@@ -86,7 +86,7 @@ def _transcribe(wav_path):
 
         data = list()
         for f in org_files:
-            data.append(results[f])
+            data.append(tmp_results[f])
 
         join_wavs(org_files, wav_path.replace(".wav", "_slim.wav"))
     return "\n\n".join(data).strip()
