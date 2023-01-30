@@ -2,6 +2,7 @@ import glob
 import os
 import tempfile
 
+import noisereduce as nr
 import whisper
 from natsort import natsorted
 from pydub import AudioSegment
@@ -21,7 +22,15 @@ class Whisper:
         return result["text"]
 
 
+def reduce_noise(path: str) -> None:
+    print("reducing noise")
+    rate, data = wavfile.read(path)
+    reduced_noise = nr.reduce_noise(y=data, sr=rate)
+    wavfile.write(path, rate, reduced_noise)
+
+
 def _split(wav_path, output_dir):
+    reduce_noise(wav_path)
     sound = AudioSegment.from_file(wav_path, format="wav")
     print("splitting on sience")
     chunks = split_on_silence(
@@ -77,7 +86,7 @@ def _transcribe(wav_path):
 
         data = list()
         for f in org_files:
-            data.append(tmp_results[f])
+            data.append(tmp_results[f]["text"])
 
         join_wavs(org_files, wav_path.replace(".wav", "_slim.wav"))
     return "\n\n".join(data).strip()
