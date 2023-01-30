@@ -3,4 +3,3 @@ tqdm==4.61.0
 pydub==0.25.1
 invoke==1.5.0
 setuptools-rust==1.5.2
-noisereduce==2.0.1
