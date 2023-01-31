@@ -17,9 +17,14 @@ class Whisper:
         self.model = whisper.load_model(size)
 
     def __call__(self, path: str) -> str:
-        result = self.model.transcribe(path)
-        print(result)
-        return result["text"]
+        result = self.model.transcribe(path, fp16=False)
+        segments = result["segments"]
+        texts = []
+        for seg in segments:
+            texts.append(seg["text"])
+        text = "\n".join(texts)
+        print(text)
+        return text
 
 
 def reduce_noise(path: str) -> None:
@@ -86,7 +91,7 @@ def _transcribe(wav_path):
 
         data = list()
         for f in org_files:
-            data.append(tmp_results[f]["text"])
+            data.append(tmp_results[f])
 
         join_wavs(org_files, wav_path.replace(".wav", "_slim.wav"))
     return "\n\n".join(data).strip()
